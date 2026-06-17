@@ -608,6 +608,9 @@
   // ────────────────────────────────────────────────────────────────
   // スプレッドシートから最新の活動情報を取得して表示
   // ────────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────
+  // スプレッドシートから最新の活動情報を取得して表示
+  // ────────────────────────────────────────────────────────────────
   async function loadActivityInfo() {
     document.getElementById('activityLoading').classList.remove('hidden');
     document.getElementById('activityContent').classList.add('hidden');
@@ -632,19 +635,24 @@
         return;
       }
 
-      const { date, room, imageUrl } = json.data;
+      // ★★★ ここから下が新しく書き換わった部分 ★★★
+      const { date, room, url } = json.data; // imageUrl を url に修正！
 
       document.getElementById('activityLoading').classList.add('hidden');
       document.getElementById('activityContent').classList.remove('hidden');
       document.getElementById('infoDate').textContent = date || '未設定';
       document.getElementById('infoRoom').textContent = room || '未設定';
-      document.getElementById('infoNote').textContent = imageUrl ? '資料あり（下記参照）' : '資料なし';
+
+      // URLが本当に「http」から始まる本物のリンクかチェック
+      const hasValidUrl = url && url.startsWith('http');
+
+      document.getElementById('infoNote').textContent = hasValidUrl ? '資料あり（下記参照）' : '資料なし';
 
       const imgEl     = document.getElementById('materialImg');
       const loadingEl = document.getElementById('materialLoading');
 
-      if (imageUrl) {
-        const directUrl   = convertDriveUrl(imageUrl);
+      if (hasValidUrl) {
+        const directUrl   = convertDriveUrl(url);
         imgEl.onload  = () => { loadingEl.classList.add('hidden'); };
         imgEl.onerror = () => {
           loadingEl.textContent = '画像を読み込めませんでした。DriveファイルのURLと共有設定（リンクを知っている全員）を確認してください。';
@@ -653,8 +661,10 @@
         imgEl.src = directUrl;
         imgEl.classList.remove('hidden');
       } else {
-        loadingEl.textContent = '今週の資料はまだアップロードされていません。';
+        // httpから始まらない文字（GASが送る「準備中…」など）をそのまま画面に出す
+        loadingEl.textContent = url || '今週の資料はまだアップロードされていません。';
       }
+      // ★★★ ここまで ★★★
 
     } catch (err) {
       console.error('[App] 活動情報の取得に失敗:', err);
